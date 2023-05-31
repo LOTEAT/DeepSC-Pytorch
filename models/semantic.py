@@ -144,9 +144,10 @@ class EncoderLayer(nn.Module):
 
 
 
-class Encoder(nn.Module):
+class SemanticEncoder(nn.Module):
     def __init__(self, num_layers, num_heads, d_model, dff, input_vocab_size, 
              maximum_position_encoding=512, dropout_pro=0.1):
+        super(SemanticEncoder, self).__init__()
         self.d_model = d_model
         self.dff = dff
         self.num_layers = num_layers
@@ -216,17 +217,7 @@ class DecoderLayer(nn.Module):
         return output3, attn_weights1, attn_weights2
         
 
-
-
-
-
-
-
-
-
-
-
-class Decoder(nn.Module):
+class SemanticDecoder(nn.Module):
     '''
     1. Output Embedding 
     2. Positional Encoding 
@@ -234,7 +225,7 @@ class Decoder(nn.Module):
     '''
     def __init__(self, num_layers, d_model, num_heads, dff, target_vocab_size,
                maximum_position_encoding=512, dropout_pro=0.1):
-        super(Decoder, self).__init__()
+        super(SemanticDecoder, self).__init__()
 
         self.d_model = d_model
         self.num_layers = num_layers

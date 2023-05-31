@@ -4,6 +4,7 @@ Date: 2023-05-30 21:23:59
 '''
 import torch
 from torch import nn
+import math
 
 class PowerNorm(torch.nn.Module):
     def forward(self, x):
@@ -44,3 +45,23 @@ class ChannelDecoder(nn.Module):
 
         output = self.layernorm1(x1 + x3)
         return output
+    
+    
+class Channel(nn.Module):
+    def __init__(self):
+        super(Channel, self).__init__()
+    
+    def awgn(inputs, n_std=0.1):
+        x = inputs
+        y = x + torch.randn_like(x) * n_std
+        return y
+    
+    def fading(self, inputs, K=1, n_std=0.1, detector='MMSE'):
+        x = inputs
+        bs, sent_len, d_model = x.shape
+        mean = math.sqrt(K / (2 * (K + 1)))
+        std = math.sqrt(1 / (2 * (K + 1)))
+        x = tf.reshape(x, (bs, -1, 2))
+        x_real = x[:, :, 0]
+        x_imag = x[:, :, 1]
+        x_complex = tf.complex(x_real, x_imag)
