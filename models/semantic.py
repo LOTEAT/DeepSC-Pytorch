@@ -174,3 +174,99 @@ class Encoder(nn.Module):
             x = self.encoder[i](x, training, mask)
             
         return x
+    
+    
+    
+class DecoderLayer(nn.Module):
+    '''
+    This is decoder leayer, which includes three layers, 
+    1. multihead, 
+    2. masked multihead 
+    3. feed forward
+    '''
+    def __init__(self, d_model, num_heads, dff, drop_pro = 0.1):
+        super(DecoderLayer, self).__init__()
+        
+        self.attention_layer1 = AttentionLayer(d_model, num_heads) #masked
+        self.attention_layer2 = AttentionLayer(d_model, num_heads)
+        
+        self.ffn = FeedForward(d_model, dff)
+        
+        self.layernorm1 = nn.LayerNorm(eps=1e-6)
+        self.layernorm2 = nn.LayerNorm(eps=1e-6)
+        self.layernorm3 = nn.LayerNorm(eps=1e-6)
+        
+        self.dropout1 = nn.Dropout(drop_pro)
+        self.dropout2 = nn.Dropout(drop_pro)
+        self.dropout3 = nn.Dropout(drop_pro)
+        
+    def forward(self, x, enc_output, training, look_ahead_mask, padding_mask):
+        attn1, attn_weights1 = self.attention_layer1(x, x, x, look_ahead_mask)
+        attn1 = self.dropout1(attn1, training = training)
+        output1 = self.layernorm1(x + attn1)
+        
+        attn2, attn_weights2 = self.attention_layer2(enc_output, enc_output, output1, padding_mask)
+        attn2 = self.dropout2(attn2, training = training)
+        output2 = self.layernorm2(attn2 + output1)
+        
+        ffn_output = self.ffn(output2)
+        ffn_output = self.dropout3(ffn_output, training = training)
+        output3 = self.layernorm3(ffn_output + output2)  # (batch_size, target_seq_len, d_model)
+        
+        return output3, attn_weights1, attn_weights2
+        
+
+
+
+
+
+
+
+
+
+
+
+class Decoder(nn.Module):
+    '''
+    1. Output Embedding 
+    2. Positional Encoding 
+    3. N decoder layers
+    '''
+    def __init__(self, num_layers, d_model, num_heads, dff, target_vocab_size,
+               maximum_position_encoding=512, dropout_pro=0.1):
+        super(Decoder, self).__init__()
+
+        self.d_model = d_model
+        self.num_layers = num_layers
+    
+        self.embedding = nn.Embedding(target_vocab_size, d_model)
+        self.pos_encoding = position_encoding(maximum_position_encoding, d_model)
+    
+        self.dec_layers = [DecoderLayer(d_model, num_heads, dff, dropout_pro)
+                       for _ in range(num_layers)]
+        self.dropout = nn.Dropout(dropout_pro)
+        # prediction layer
+        self.final_layer = nn.Linear(target_vocab_size, target_vocab_size)
+    
+    def forward(self, x, enc_output, training, look_ahead_mask, padding_mask):
+
+        seq_len = x.shape[1]
+        attention_weights = {}
+    
+        x = self.embedding(x)  # (batch_size, target_seq_len, d_model)
+        x *= torch.sqrt(self.d_model)
+        x += self.pos_encoding[:, :seq_len, :]
+    
+        x = self.dropout(x, training=training)
+
+        for i in range(self.num_layers):
+            x, block1, block2 = self.dec_layers[i](x, enc_output, training,
+                                             look_ahead_mask, padding_mask)
+      
+        attention_weights['decoder_layer{}_block1'.format(i+1)] = block1
+        attention_weights['decoder_layer{}_block2'.format(i+1)] = block2
+        
+        x = self.final_layer(x)
+
+        # x.shape == (batch_size, target_seq_len, d_model)
+        return x, attention_weights
