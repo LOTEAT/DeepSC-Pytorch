@@ -20,7 +20,7 @@ def position_encoding(position, d_model):
     # 2i+1
     angle_set[:, 1::2] = np.cos(angle_set[:, 1::2])
     pos_encoding = angle_set[None, ...]
-    return torch.from_numpy(pos_encoding, dtype = torch.float32)
+    return torch.from_numpy(pos_encoding)
 
 class AttentionLayer(nn.Module):
     def __init__(self, d_model, num_heads):
