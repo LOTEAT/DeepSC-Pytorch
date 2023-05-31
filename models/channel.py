@@ -9,9 +9,6 @@ class PowerNorm(torch.nn.Module):
     def forward(self, x):
         return x / torch.sqrt(2 * torch.mean(x ** 2))
 
-self.powernorm = PowerNorm()
-
-
 
 class ChannelEncoder(nn.Module):
     def __init__(self, size1=256, size2=16):
