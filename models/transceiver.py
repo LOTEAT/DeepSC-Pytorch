@@ -33,9 +33,9 @@ class Mine(nn.Module):
         return output
 
 
-class Transeiver(nn.Module):
+class Transceiver(nn.Module):
     def __init__(self, args):
-        super(Transeiver, self).__init__()
+        super(Transceiver, self).__init__()
 
         # semantic encoder
         self.semantic_encoder = SemanticEncoder(args.encoder_num_layer, args.encoder_num_heads,
