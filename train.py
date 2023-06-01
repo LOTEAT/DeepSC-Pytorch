@@ -95,9 +95,7 @@ if __name__ == '__main__':
         n_std = snr2noise(args.train_snr)
         train_loss_record, test_loss_record = 0, 0
         for (batch, (inp, tar)) in enumerate(train_dataset):
-            print(inp.shape, tar.shape)
-            input()
-            train_loss, train_loss_mine, _ = train_step(inp, tar, net, mine_net, optim_net, optim_mi, args.channel, n_std,
+            train_loss, train_loss_mine, _ = train_step(inp, tar, transeiver, mine_net, optim_net, optim_mi, args.channel, n_std,
                                             train_with_mine=args.train_with_mine)
             train_loss_record += train_loss
         train_loss_record = train_loss_record/batch

@@ -53,6 +53,7 @@ class MultiHeadedAttention(nn.Module):
     def __init__(self, num_heads, d_model, dropout=0.1):
         "Take in model size and number of heads."
         super(MultiHeadedAttention, self).__init__()
+        
         assert d_model % num_heads == 0
 
         self.d_model = d_model
@@ -190,38 +191,33 @@ class DecoderLayer(nn.Module):
     3. feed forward
     """
 
-    def __init__(self, d_model, num_heads, dff, drop_pro=0.1):
+    def __init__(self, size, d_model, num_heads, dff, drop_pro=0.1):
         super(DecoderLayer, self).__init__()
 
-        self.attention_layer1 = AttentionLayer(d_model, num_heads)  # masked
-        self.attention_layer2 = AttentionLayer(d_model, num_heads)
+        self.attention_layer1 = MultiHeadedAttention(d_model, num_heads)  # masked
+        self.attention_layer2 = MultiHeadedAttention(d_model, num_heads)
 
-        self.ffn = FeedForward(d_model, dff)
+        self.ffn = PositionwiseFeedForward(d_model, dff)
+        self.sublayer1 = SublayerConnection(size, drop_pro)
+        self.sublayer2 = SublayerConnection(size, drop_pro)
+        self.sublayer3 = SublayerConnection(size, drop_pro)
+        self.feed_forward = PositionwiseFeedForward(d_model, dff)
+        self.size = size
 
-        self.layernorm1 = nn.LayerNorm(eps=1e-6)
-        self.layernorm2 = nn.LayerNorm(eps=1e-6)
-        self.layernorm3 = nn.LayerNorm(eps=1e-6)
 
-        self.dropout1 = nn.Dropout(drop_pro)
-        self.dropout2 = nn.Dropout(drop_pro)
-        self.dropout3 = nn.Dropout(drop_pro)
-
-    def forward(self, x, enc_output, training, look_ahead_mask, padding_mask):
+    def forward(self, x, enc_output, look_ahead_mask, padding_mask):
         attn1, attn_weights1 = self.attention_layer1(x, x, x, look_ahead_mask)
-        attn1 = self.dropout1(attn1, training=training)
-        output1 = self.layernorm1(x + attn1)
+        output1 = self.sublayer1(attn1)
+
 
         attn2, attn_weights2 = self.attention_layer2(
-            enc_output, enc_output, output1, padding_mask
+            output1, enc_output, enc_output, padding_mask
         )
-        attn2 = self.dropout2(attn2, training=training)
-        output2 = self.layernorm2(attn2 + output1)
-
+        
+        output2 = self.sublayer2(attn2)
+        
         ffn_output = self.ffn(output2)
-        ffn_output = self.dropout3(ffn_output, training=training)
-        output3 = self.layernorm3(
-            ffn_output + output2
-        )  # (batch_size, target_seq_len, d_model)
+        output3 = self.sublayer3(ffn_output)
 
         return output3, attn_weights1, attn_weights2
 
@@ -252,7 +248,7 @@ class SemanticDecoder(nn.Module):
         self.pos_encoding = position_encoding(maximum_position_encoding, d_model)
 
         self.dec_layers = [
-            DecoderLayer(d_model, num_heads, dff, dropout_pro)
+            DecoderLayer(d_model, d_model, num_heads, dff, dropout_pro)
             for _ in range(num_layers)
         ]
         self.dropout = nn.Dropout(dropout_pro)
