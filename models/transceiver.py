@@ -9,24 +9,19 @@ class Mine(nn.Module):
         super(Mine, self).__init__()
         # randN_05 = torch.nn.init.normal(mean=0.0, std=0.02)
         # bias_init = torch.nn.init.constant(0)
+        normal_init = lambda x: torch.nn.init.normal(x, mean=0.0, std=0.02)
+        zero_init = lambda x: torch.nn.init.constant(x, 0)
 
         self.dense1 = nn.Linear(hidden_size, hidden_size)
-        self.dense1.weight.data = torch.nn.init.normal(self.dense1.weight.data, mean=0.0, std=0.02)
-
-        self.dense1.bias.data = torch.nn.init.constant(self.dense1.bias.data, 0)
-        self.relu1 = nn.ReLU()
-
         self.dense2 = nn.Linear(hidden_size, hidden_size)
-        self.dense2.weight.data = torch.nn.init.normal(self.dense2.weight.data, mean=0.0, std=0.02)
-        self.dense2.bias.data = torch.nn.init.constant(self.dense2.bias.data, 0)
-        self.relu2 = nn.ReLU()
-
         self.dense3 = nn.Linear(hidden_size, 1)
-
-        self.dense3.weight.data = torch.nn.init.normal(self.dense3.weight.data, mean=0.0, std=0.02)
-        self.dense3.bias.data = torch.nn.init.constant(self.dense3.bias.data, 0)
         
+        for dense in [self.dense1, self.dense2, self.dense3]:
+            normal_init(dense.weight.data)
+            zero_init(dense.bias.data) 
         
+        self.relu1 = nn.ReLU()
+        self.relu2 = nn.ReLU()
 
     def forward(self, inputs):
         output1 = self.dense1(inputs)
