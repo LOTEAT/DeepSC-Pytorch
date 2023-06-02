@@ -53,6 +53,7 @@ def train_step(inp, tar, net, mine_net, optim_net, optim_mi, channel='AWGN', n_s
 
     # Compute gradients and update network parameters
     loss.backward()
+    print(loss.item())
     optim_net.step()
 
     # if train_with_mine:
