@@ -21,8 +21,10 @@ import torch.nn.functional as F
 # from models.transceiver import Transeiver, Mine
 # from dataset.dataloader import return_loader
 # from utlis.trainer import train_step, eval_step
+criterion = SparseCategoricalCrossentropyLoss()
 
 def train_step(inp, tar, net, mine_net, optim_net, optim_mi, channel='AWGN', n_std=0.1, train_with_mine=False):
+    
     tar_inp = tar[:, :-1]  # exclude the last one
     tar_real = tar[:, 1:]  # exclude the first one
 
@@ -37,30 +39,31 @@ def train_step(inp, tar, net, mine_net, optim_net, optim_mi, channel='AWGN', n_s
         enc_padding_mask=enc_padding_mask,
         combined_mask=combined_mask, dec_padding_mask=dec_padding_mask
     )
-
+    print(tar_real.shape)
+    print(predictions.shape)
     # Compute loss
-    loss_error = SparseCategoricalCrossentropyLoss(tar_real, predictions)
+    loss_error = criterion(tar_real, predictions)
     loss = loss_error
 
-    if train_with_mine:
-        joint, marginal = sample_batch(channel_enc_output, received_channel_enc_output)
-        mi_lb, _, _ = mutual_information(joint, marginal, mine_net)
-        loss_mine = -mi_lb
-        loss += 0.05 * loss_mine
+    # if train_with_mine:
+    #     joint, marginal = sample_batch(channel_enc_output, received_channel_enc_output)
+    #     mi_lb, _, _ = mutual_information(joint, marginal, mine_net)
+    #     loss_mine = -mi_lb
+    #     loss += 0.05 * loss_mine
 
     # Compute gradients and update network parameters
     loss.backward()
     optim_net.step()
 
-    if train_with_mine:
-        # Compute gradients and update MI estimator parameters
-        optim_mi.zero_grad()
-        loss_mine.backward()
-        optim_mi.step()
+    # if train_with_mine:
+    #     # Compute gradients and update MI estimator parameters
+    #     optim_mi.zero_grad()
+    #     loss_mine.backward()
+    #     optim_mi.step()
 
     mi_numerical = 2.20  # Placeholder value, update with actual value
 
-    return loss, loss_mine, mi_numerical
+    return loss, None, mi_numerical
 
 
 if __name__ == '__main__':
@@ -94,7 +97,8 @@ if __name__ == '__main__':
     for epoch in range(args.epochs):
         n_std = snr2noise(args.train_snr)
         train_loss_record, test_loss_record = 0, 0
-        for (batch, (inp, tar)) in enumerate(train_dataset):
+        for (batch, (inp, tar)) in enumerate(train_loader):
+
             train_loss, train_loss_mine, _ = train_step(inp, tar, transeiver, mine_net, optim_net, optim_mi, args.channel, n_std,
                                             train_with_mine=args.train_with_mine)
             train_loss_record += train_loss

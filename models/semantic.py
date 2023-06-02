@@ -32,7 +32,7 @@ def attention(query, key, value, mask=None, dropout=None):
     d_k = query.size(-1)
     scores = torch.matmul(query, key.transpose(-2, -1)) / math.sqrt(d_k)
     if mask is not None:
-        scores = scores.masked_fill(mask == 0, -1e9)
+        scores += (mask * -1e9) 
     p_attn = scores.softmax(dim=-1)
     if dropout is not None:
         p_attn = dropout(p_attn)
@@ -72,19 +72,19 @@ class MultiHeadedAttention(nn.Module):
         
     def forward(self, query, key, value, mask=None):
         "Implements Figure 2"
-        if mask is not None:
-            # Same mask applied to all h heads.
-            mask = mask.unsqueeze(1)
+        # if mask is not None:
+        # Same mask applied to all h heads.
+            
         nbatches = query.size(0)
         
-        q = self.wq(q)
+        q = self.wq(query)
 
         # 1) Do all the linear projections in batch from d_model => h x d_k
         query, key, value = [
-            lin(x).view(nbatches, -1, self.h, self.d_k).transpose(1, 2)
+            lin(x).view(nbatches, -1, self.num_heads, self.head_dim).transpose(1, 2)
             for lin, x in zip((self.wq, self.wk, self.wv), (query, key, value))
         ]
-
+        
         # 2) Apply attention on all the projected vectors in batch.
         x, self.attn = attention(
             query, key, value, mask=mask, dropout=self.dropout
@@ -94,7 +94,7 @@ class MultiHeadedAttention(nn.Module):
         x = (
             x.transpose(1, 2)
             .contiguous()
-            .view(nbatches, -1, self.h * self.d_k)
+            .view(nbatches, -1, self.num_heads * self.head_dim)
         )
         return self.dense(x), self.attn
 
@@ -160,7 +160,7 @@ class SemanticEncoder(nn.Module):
         self.dff = dff
         self.num_layers = num_layers
         self.target_vocab_size = input_vocab_size
-        self.embedding = Embeddings(input_vocab_size, d_model)
+        self.embedding = Embeddings(d_model, input_vocab_size)
         self.pos_encoding = position_encoding(maximum_position_encoding, self.d_model)
         self.dropout = nn.Dropout(dropout_pro)
         self.encoder = [
@@ -175,11 +175,10 @@ class SemanticEncoder(nn.Module):
         # positional Encoding
         x += self.pos_encoding[:, :seq_len, :]
         # Dropout
-        x = self.dropout(x, training=training)
+        x = self.dropout(x)
         # Encoder
         for i in range(self.num_layers):
-            x = self.encoder[i](x, training, mask)
-
+            x = self.encoder[i](x, mask)
         return x
 
 
@@ -193,9 +192,11 @@ class DecoderLayer(nn.Module):
 
     def __init__(self, size, d_model, num_heads, dff, drop_pro=0.1):
         super(DecoderLayer, self).__init__()
-
-        self.attention_layer1 = MultiHeadedAttention(d_model, num_heads)  # masked
-        self.attention_layer2 = MultiHeadedAttention(d_model, num_heads)
+        print('d_model', d_model)
+        print('num_heads', num_heads)
+        
+        self.attention_layer1 = MultiHeadedAttention(num_heads, d_model)  # masked
+        self.attention_layer2 = MultiHeadedAttention(num_heads, d_model)
 
         self.ffn = PositionwiseFeedForward(d_model, dff)
         self.sublayer1 = SublayerConnection(size, drop_pro)
@@ -207,17 +208,15 @@ class DecoderLayer(nn.Module):
 
     def forward(self, x, enc_output, look_ahead_mask, padding_mask):
         attn1, attn_weights1 = self.attention_layer1(x, x, x, look_ahead_mask)
-        output1 = self.sublayer1(attn1)
-
-
+        output1 = self.sublayer1(x, attn1)
         attn2, attn_weights2 = self.attention_layer2(
             output1, enc_output, enc_output, padding_mask
         )
         
-        output2 = self.sublayer2(attn2)
+        output2 = self.sublayer2(output1, attn2)
         
         ffn_output = self.ffn(output2)
-        output3 = self.sublayer3(ffn_output)
+        output3 = self.sublayer3(output2, ffn_output)
 
         return output3, attn_weights1, attn_weights2
 
@@ -232,8 +231,8 @@ class SemanticDecoder(nn.Module):
     def __init__(
         self,
         num_layers,
-        d_model,
         num_heads,
+        d_model,
         dff,
         target_vocab_size,
         maximum_position_encoding=512,
@@ -253,26 +252,27 @@ class SemanticDecoder(nn.Module):
         ]
         self.dropout = nn.Dropout(dropout_pro)
         # prediction layer
-        self.final_layer = nn.Linear(target_vocab_size, target_vocab_size)
+        print('target_vocab_size', target_vocab_size, 'target_vocab_size')
+        self.final_layer = nn.Linear(128, target_vocab_size)
 
     def forward(self, x, enc_output, training, look_ahead_mask, padding_mask):
         seq_len = x.shape[1]
         attention_weights = {}
 
         x = self.embedding(x)  # (batch_size, target_seq_len, d_model)
-        x *= torch.sqrt(self.d_model)
+        x *= math.sqrt(self.d_model)
         x += self.pos_encoding[:, :seq_len, :]
 
-        x = self.dropout(x, training=training)
+        x = self.dropout(x)
 
         for i in range(self.num_layers):
             x, block1, block2 = self.dec_layers[i](
-                x, enc_output, training, look_ahead_mask, padding_mask
+                x, enc_output, look_ahead_mask, padding_mask
             )
 
         attention_weights["decoder_layer{}_block1".format(i + 1)] = block1
         attention_weights["decoder_layer{}_block2".format(i + 1)] = block2
-
+        print(x.shape)
         x = self.final_layer(x)
 
         # x.shape == (batch_size, target_seq_len, d_model)

@@ -1,3 +1,7 @@
+'''
+Author: LOTEAT
+Date: 2023-05-31 18:37:44
+'''
 import torch
 import torch.nn as nn
 from .semantic import SemanticEncoder, SemanticDecoder
@@ -62,6 +66,10 @@ class Transceiver(nn.Module):
         channel_enc_output = self.channel_encoder(sema_enc_output)
         # over the AWGN channel
         if channel=='AWGN':
+            print(type(channel_enc_output))
+            print(type(n_std))
+            
+            # self.channel_layer.awgn(channel_enc_output, n_std)
             received_channel_enc_output = self.channel_layer.awgn(channel_enc_output, n_std)
         elif channel=='Rician':
             received_channel_enc_output = self.channel_layer.fading(channel_enc_output, 1, n_std)

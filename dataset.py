@@ -11,9 +11,10 @@ class EuroparlDataset(Dataset):
         data = pickle.load(open(path, 'rb'))
         data = data[:length]
         self.data = torch.nn.utils.rnn.pad_sequence([torch.LongTensor(seq) for seq in data], batch_first=True)
+        
 
     def __getitem__(self, index):
-        return torch.LongTensor(self.data[index]), torch.LongTensor(self.data[index])
+        return torch.tensor(self.data[index]), torch.tensor(self.data[index])
 
     def __len__(self):
         return len(self.data)

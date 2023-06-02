@@ -13,5 +13,12 @@ class SparseCategoricalCrossentropyLoss(nn.Module):
 
     def forward(self, real, pred):
         mask = real != self.ignore_index
-        loss_ = self.loss_object(pred, real) * mask.float()
-        return loss_.mean()
+        bs = pred.shape[0]
+
+        loss_ = self.loss_object(pred.view(-1, 22234), real.contiguous().view(-1))#  * mask.float()
+        loss_ = loss_.view(bs, -1)
+        loss_ *= mask.float()
+
+        return torch.mean(loss_)
+
+
