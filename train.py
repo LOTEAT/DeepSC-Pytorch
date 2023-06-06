@@ -72,7 +72,6 @@ if __name__ == '__main__':
     args.pad_idx = token_to_idx["<PAD>"]
     args.start_idx = token_to_idx["<START>"]
     args.end_idx = token_to_idx["<END>"]
-    StoT = Seq2Text(token_to_idx, args.end_idx)
     # Load dataset
     train_dataset, test_dataset = EuroparlDataset(args.train_save_path), EuroparlDataset(args.test_save_path)
     train_loader = DataLoader(train_dataset, batch_size=args.bs, shuffle=True)
