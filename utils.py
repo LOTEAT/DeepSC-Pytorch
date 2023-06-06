@@ -4,6 +4,8 @@ Date: 2023-05-31 16:10:57
 '''  
 
 import numpy as np
+import torch
+
 class Seq2Text:
     def __init__(self, vocab_dict, end_idx):
         self.reverse_word_map = {value: key for key, value in vocab_dict.items()}
@@ -19,7 +21,6 @@ def snr2noise(snr):
     noise_std = 1 / np.sqrt(2 * snr)
     return noise_std
 
-import torch
 
 def create_padding_mask(seq):
     seq = torch.eq(seq, 0).float()

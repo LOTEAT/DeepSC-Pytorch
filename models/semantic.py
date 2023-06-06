@@ -7,6 +7,7 @@ from torch import nn
 import numpy as np
 import math
 from .utils import LayerNorm
+from .attention import MultiHeadedAttention
 
 
 def position_encoding(position, d_model):
@@ -26,19 +27,6 @@ def position_encoding(position, d_model):
     return torch.from_numpy(pos_encoding)
 
 
-
-def attention(query, key, value, mask=None, dropout=None):
-    "Compute 'Scaled Dot Product Attention'"
-    d_k = query.size(-1)
-    scores = torch.matmul(query, key.transpose(-2, -1)) / math.sqrt(d_k)
-    if mask is not None:
-        scores += (mask * -1e9) 
-    p_attn = scores.softmax(dim=-1)
-    if dropout is not None:
-        p_attn = dropout(p_attn)
-    return torch.matmul(p_attn, value), p_attn
-
-
 class Embeddings(nn.Module):
     def __init__(self, d_model, vocab):
         super(Embeddings, self).__init__()
@@ -49,58 +37,8 @@ class Embeddings(nn.Module):
         return self.lut(x) * math.sqrt(self.d_model)
 
 
-class MultiHeadedAttention(nn.Module):
-    def __init__(self, num_heads, d_model, dropout=0.1):
-        "Take in model size and number of heads."
-        super(MultiHeadedAttention, self).__init__()
-        
-        assert d_model % num_heads == 0
-
-        self.d_model = d_model
-        self.num_heads = num_heads
-        self.head_dim = d_model // num_heads
-        self.attn = None
-        self.dropout = nn.Dropout(p=dropout)
-
-        assert d_model % self.num_heads == 0
-        
-        self.wq = nn.Linear(d_model, d_model, bias=False)
-        self.wk = nn.Linear(d_model, d_model, bias=False)
-        self.wv = nn.Linear(d_model, d_model, bias=False)
-
-        self.dense = nn.Linear(d_model, d_model)
-        
-    def forward(self, query, key, value, mask=None):
-        "Implements Figure 2"
-        # if mask is not None:
-        # Same mask applied to all h heads.
-            
-        nbatches = query.size(0)
-        
-        q = self.wq(query)
-
-        # 1) Do all the linear projections in batch from d_model => h x d_k
-        query, key, value = [
-            lin(x).view(nbatches, -1, self.num_heads, self.head_dim).transpose(1, 2)
-            for lin, x in zip((self.wq, self.wk, self.wv), (query, key, value))
-        ]
-        
-        # 2) Apply attention on all the projected vectors in batch.
-        x, self.attn = attention(
-            query, key, value, mask=mask, dropout=self.dropout
-        )
-
-        # 3) "Concat" using a view and apply a final linear.
-        x = (
-            x.transpose(1, 2)
-            .contiguous()
-            .view(nbatches, -1, self.num_heads * self.head_dim)
-        )
-        return self.dense(x), self.attn
-
 class PositionwiseFeedForward(nn.Module):
     "Implements FFN equation."
-
     def __init__(self, d_model, d_ff):
         super(PositionwiseFeedForward, self).__init__()
         self.w_1 = nn.Linear(d_model, d_ff)
@@ -137,7 +75,6 @@ class EncoderLayer(nn.Module):
         self.size = size
 
     def forward(self, x, mask):
-        "Follow Figure 1 (left) for connections."
         attn_output, _ = self.self_attn(x, x, x, mask)  
         attn_output = self.sublayer1(x, attn_output)
         ffn_output = self.feed_forward(attn_output)
@@ -168,7 +105,7 @@ class SemanticEncoder(nn.Module):
             for _ in range(num_layers)
         ]
 
-    def forward(self, x, training, mask):
+    def forward(self, x, mask):
         seq_len = x.shape[1]
         # Embedding
         x = self.embedding(x)
@@ -252,13 +189,11 @@ class SemanticDecoder(nn.Module):
         ]
         self.dropout = nn.Dropout(dropout_pro)
         # prediction layer
-        print('target_vocab_size', target_vocab_size, 'target_vocab_size')
         self.final_layer = nn.Linear(128, target_vocab_size)
 
     def forward(self, x, enc_output, training, look_ahead_mask, padding_mask):
         seq_len = x.shape[1]
         attention_weights = {}
-
         x = self.embedding(x)  # (batch_size, target_seq_len, d_model)
         x *= math.sqrt(self.d_model)
         x += self.pos_encoding[:, :seq_len, :]

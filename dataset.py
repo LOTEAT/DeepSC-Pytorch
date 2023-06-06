@@ -4,7 +4,7 @@ Date: 2023-05-31 16:34:26
 '''
 import pickle
 import torch
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset
 
 class EuroparlDataset(Dataset):
     def __init__(self, path, length=-1):

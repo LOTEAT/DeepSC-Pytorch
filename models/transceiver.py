@@ -61,14 +61,11 @@ class Transceiver(nn.Module):
     def forward(self, inputs, tar_inp, channel='AWGN', n_std=0.1, training=False, enc_padding_mask=None,
              combined_mask=None, dec_padding_mask=None):
 
-        sema_enc_output = self.semantic_encoder(inputs, training, enc_padding_mask)
+        sema_enc_output = self.semantic_encoder(inputs, enc_padding_mask)
         # channel encoder
         channel_enc_output = self.channel_encoder(sema_enc_output)
         # over the AWGN channel
         if channel=='AWGN':
-            print(type(channel_enc_output))
-            print(type(n_std))
-            
             # self.channel_layer.awgn(channel_enc_output, n_std)
             received_channel_enc_output = self.channel_layer.awgn(channel_enc_output, n_std)
         elif channel=='Rician':

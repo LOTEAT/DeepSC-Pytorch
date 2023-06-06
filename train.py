@@ -15,12 +15,6 @@ from loss import SparseCategoricalCrossentropyLoss
 import torch
 import torch.nn.functional as F
 
-# torch.set_num_threads(n)
-# import json
-# import tensorflow as tf
-# from models.transceiver import Transeiver, Mine
-# from dataset.dataloader import return_loader
-# from utlis.trainer import train_step, eval_step
 criterion = SparseCategoricalCrossentropyLoss()
 
 def train_step(inp, tar, net, mine_net, optim_net, optim_mi, channel='AWGN', n_std=0.1, train_with_mine=False):
@@ -39,12 +33,11 @@ def train_step(inp, tar, net, mine_net, optim_net, optim_mi, channel='AWGN', n_s
         enc_padding_mask=enc_padding_mask,
         combined_mask=combined_mask, dec_padding_mask=dec_padding_mask
     )
-    print(tar_real.shape)
-    print(predictions.shape)
     # Compute loss
     loss_error = criterion(tar_real, predictions)
     loss = loss_error
-
+    
+    print(train_with_mine)
     # if train_with_mine:
     #     joint, marginal = sample_batch(channel_enc_output, received_channel_enc_output)
     #     mi_lb, _, _ = mutual_information(joint, marginal, mine_net)

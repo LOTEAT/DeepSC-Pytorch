@@ -15,7 +15,6 @@ def Singleton(cls):
     return _singleton
 
 
-
 @Singleton
 class Logger:
     def __init__(self, log_path:str)->None:
