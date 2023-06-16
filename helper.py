@@ -15,8 +15,8 @@ def helper():
     parser.add_argument('--out_test_dir', default='europarl/test_data.pkl', type=str)
     parser.add_argument('--out_vocab', default='europarl/vocab.json', type=str)
 
-    parser.add_argument('--train-save-path', default='data/europarl/train_data.pkl', type=str)
-    parser.add_argument('--test-save-path', default='data/europarl/test_data.pkl', type=str)
+    parser.add_argument('--train-path', default='data/europarl/train_data.pkl', type=str)
+    parser.add_argument('--test-path', default='data/europarl/test_data.pkl', type=str)
     parser.add_argument('--vocab_path', default='data/europarl/vocab.json', type=str)
 
     # Training parameters

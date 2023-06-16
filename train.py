@@ -78,7 +78,7 @@ if __name__ == '__main__':
     # Load the vocab
     args = load_vocab(args)
     # Load dataset
-    train_dataset, test_dataset = EuroparlDataset(args.train_save_path), EuroparlDataset(args.test_save_path)
+    train_dataset, test_dataset = EuroparlDataset(args.train_path), EuroparlDataset(args.test_path)
     train_loader = DataLoader(train_dataset, batch_size=args.bs, shuffle=True)
     test_loader = DataLoader(test_dataset, batch_size=args.bs, shuffle=True)
     
