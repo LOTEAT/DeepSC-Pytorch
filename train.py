@@ -60,18 +60,23 @@ def train_step(data, target, net, mine_net, optim_net, optim_mi, channel='AWGN',
     return loss, None, mi_numerical
 
 
+def load_vocab(args):
+    vocab = json.load(open(args.vocab_path, 'rb'))
+    args.vocab_size = len(vocab['token_to_idx'])
+    token_to_idx = vocab['token_to_idx']
+    args.pad_idx = token_to_idx["<PAD>"]
+    args.start_idx = token_to_idx["<START>"]
+    args.end_idx = token_to_idx["<END>"] 
+    return args
+
+
 if __name__ == '__main__':
     # Set random seed
     torch.manual_seed(5)
     args = helper()
     torch.set_num_threads(args.nthreads)
     # Load the vocab
-    vocab = json.load(open(args.vocab_path, 'rb'))
-    args.vocab_size = len(vocab['token_to_idx'])
-    token_to_idx = vocab['token_to_idx']
-    args.pad_idx = token_to_idx["<PAD>"]
-    args.start_idx = token_to_idx["<START>"]
-    args.end_idx = token_to_idx["<END>"]
+    args = load_vocab(args)
     # Load dataset
     train_dataset, test_dataset = EuroparlDataset(args.train_save_path), EuroparlDataset(args.test_save_path)
     train_loader = DataLoader(train_dataset, batch_size=args.bs, shuffle=True)
