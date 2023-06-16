@@ -3,7 +3,7 @@ Author: LOTEAT
 Date: 2023-06-16 16:38:17
 '''
 from torch import nn
-from powernorm import PowerNorm
+from .powernorm import PowerNorm
 
 
 class ChannelEncoder(nn.Module):

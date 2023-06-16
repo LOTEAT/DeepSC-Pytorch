@@ -3,8 +3,11 @@ Author: LOTEAT
 Date: 2023-05-31 18:37:44
 '''
 import torch.nn as nn
-from .semantic import SemanticEncoder, SemanticDecoder
-from .channel import ChannelEncoder, ChannelDecoder, Channel
+from .semantic.encoder import SemanticEncoder
+from .semantic.decoder import SemanticDecoder
+from .channel.encoder import ChannelEncoder
+from .channel.decoder import  ChannelDecoder
+from .channel.channel import Channel
 
 class Transceiver(nn.Module):
     def __init__(self, args):

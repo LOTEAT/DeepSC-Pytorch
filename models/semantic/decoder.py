@@ -3,8 +3,11 @@ Author: LOTEAT
 Date: 2023-06-06 20:08:36
 '''
 import torch.nn as nn
+import math
 from ..attention import MultiHeadedAttention
-
+from .feedforward import PositionwiseFeedForward
+from .sublayer import SublayerConnection
+from .utils import position_encoding
 
 class DecoderLayer(nn.Module):
     """
@@ -16,8 +19,6 @@ class DecoderLayer(nn.Module):
 
     def __init__(self, size, d_model, num_heads, dff, drop_pro=0.1):
         super(DecoderLayer, self).__init__()
-        print('d_model', d_model)
-        print('num_heads', num_heads)
         
         self.attention_layer1 = MultiHeadedAttention(num_heads, d_model)  # masked
         self.attention_layer2 = MultiHeadedAttention(num_heads, d_model)
