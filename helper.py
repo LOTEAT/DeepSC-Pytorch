@@ -18,11 +18,18 @@ def helper():
     parser.add_argument('--train-path', default='data/europarl/train_data.pkl', type=str)
     parser.add_argument('--test-path', default='data/europarl/test_data.pkl', type=str)
     parser.add_argument('--vocab_path', default='data/europarl/vocab.json', type=str)
+    parser.add_argument('--trans_lr', default=5e-4, type=float, help='The training learning rate')
+    parser.add_argument('--mine_lr', default=1e-2, type=float, help='The training learning rate')
+
 
     # Training parameters
     parser.add_argument('--bs', default=64, type=int, help='The training batch size')
     parser.add_argument('--shuffle-size', default=2000, type=int, help='The training shuffle size')
-    parser.add_argument('--lr', default=5e-4, type=float, help='The training learning rate')
+    
+    
+    
+    
+    
     parser.add_argument('--epochs', default=60, type=int, help='The training number of epochs')
     parser.add_argument('--train-with-mine',  action='store_true',
                     help='If added, the network will be trained WITH Mutual Information')

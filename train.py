@@ -18,7 +18,7 @@ import torch.nn.functional as F
 
 criterion = SparseCategoricalCrossentropyLoss()
 
-def train_step(data, target, net, mine_net, optim_net, optim_mi, channel='AWGN', n_std=0.1, train_with_mine=False):
+def train_step(data, target, transceiver, mine_net, optim_net, optim_mi, channel='AWGN', n_std=0.1, train_with_mine=False):
     
     tar_inp = target[:, :-1]  # exclude the last one
     tar_real = target[:, 1:]  # exclude the first one
@@ -29,7 +29,7 @@ def train_step(data, target, net, mine_net, optim_net, optim_mi, channel='AWGN',
     optim_mi.zero_grad()
 
     # Forward pass
-    predictions, channel_enc_output, received_channel_enc_output = net(
+    predictions, channel_enc_output, received_channel_enc_output = transceiver(
         data, tar_inp, channel=channel, n_std=n_std,
         enc_padding_mask=enc_padding_mask,
         combined_mask=combined_mask, dec_padding_mask=dec_padding_mask
@@ -86,18 +86,17 @@ if __name__ == '__main__':
     mine = Mine()     
 
     # Define the optimizer
-    transeiver_optim = optim.Adam(transeiver.parameters(), lr=5e-4, betas=(0.9, 0.98), eps=1e-8)
-    mine_optim = optim.Adam(mine.parameters(), lr=0.001)
-
+    transeiver_optim = optim.Adam(transeiver.parameters(), lr=args.trans_lr)
+    mine_optim = optim.Adam(mine.parameters(), lr=args.mine_lr)
     
     # Training the model
     best_loss = 10
     for epoch in range(args.epochs):
         n_std = snr2noise(args.train_snr)
         train_loss_record, test_loss_record = 0, 0
-        for (batch, (inp, tar)) in enumerate(train_loader):
+        for (batch, (data, label)) in enumerate(train_loader):
 
-            train_loss, train_loss_mine, _ = train_step(inp, tar, transeiver, mine, transeiver_optim, mine_optim, args.channel, n_std,
+            train_loss, train_loss_mine, _ = train_step(data, label, transeiver, mine, transeiver_optim, mine_optim, args.channel, n_std,
                                             train_with_mine=args.train_with_mine)
             train_loss_record += train_loss
         train_loss_record = train_loss_record/batch
