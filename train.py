@@ -9,7 +9,8 @@ import json
 from utils import *
 from dataset import EuroparlDataset
 from torch.utils.data import DataLoader
-from models.transceiver import Transceiver, Mine
+from models.transceiver import Transceiver
+from models.mine import Mine
 import torch.optim as optim
 from loss import SparseCategoricalCrossentropyLoss
 import torch
@@ -17,19 +18,19 @@ import torch.nn.functional as F
 
 criterion = SparseCategoricalCrossentropyLoss()
 
-def train_step(inp, tar, net, mine_net, optim_net, optim_mi, channel='AWGN', n_std=0.1, train_with_mine=False):
+def train_step(data, target, net, mine_net, optim_net, optim_mi, channel='AWGN', n_std=0.1, train_with_mine=False):
     
-    tar_inp = tar[:, :-1]  # exclude the last one
-    tar_real = tar[:, 1:]  # exclude the first one
+    tar_inp = target[:, :-1]  # exclude the last one
+    tar_real = target[:, 1:]  # exclude the first one
 
-    enc_padding_mask, combined_mask, dec_padding_mask = create_masks(inp, tar_inp)
+    enc_padding_mask, combined_mask, dec_padding_mask = create_masks(data, tar_inp)
 
     optim_net.zero_grad()
     optim_mi.zero_grad()
 
     # Forward pass
     predictions, channel_enc_output, received_channel_enc_output = net(
-        inp, tar_inp, channel=channel, n_std=n_std,
+        data, tar_inp, channel=channel, n_std=n_std,
         enc_padding_mask=enc_padding_mask,
         combined_mask=combined_mask, dec_padding_mask=dec_padding_mask
     )
@@ -37,23 +38,22 @@ def train_step(inp, tar, net, mine_net, optim_net, optim_mi, channel='AWGN', n_s
     loss_error = criterion(tar_real, predictions)
     loss = loss_error
     
-    print(train_with_mine)
-    # if train_with_mine:
-    #     joint, marginal = sample_batch(channel_enc_output, received_channel_enc_output)
-    #     mi_lb, _, _ = mutual_information(joint, marginal, mine_net)
-    #     loss_mine = -mi_lb
-    #     loss += 0.05 * loss_mine
+    if train_with_mine:
+        joint, marginal = sample_batch(channel_enc_output, received_channel_enc_output)
+        mi_lb, _, _ = mutual_information(joint, marginal, mine_net)
+        loss_mine = -mi_lb
+        loss += 0.05 * loss_mine
 
     # Compute gradients and update network parameters
     loss.backward()
     print(loss.item())
     optim_net.step()
 
-    # if train_with_mine:
-    #     # Compute gradients and update MI estimator parameters
-    #     optim_mi.zero_grad()
-    #     loss_mine.backward()
-    #     optim_mi.step()
+    if train_with_mine:
+        # Compute gradients and update MI estimator parameters
+        optim_mi.zero_grad()
+        loss_mine.backward()
+        optim_mi.step()
 
     mi_numerical = 2.20  # Placeholder value, update with actual value
 
@@ -78,11 +78,11 @@ if __name__ == '__main__':
     test_loader = DataLoader(test_dataset, batch_size=args.bs, shuffle=True)
     
     transeiver = Transceiver(args)
-    mine_net = Mine()     
+    mine = Mine()     
 
     # Define the optimizer
-    optim_net = optim.Adam(transeiver.parameters(), lr=5e-4, betas=(0.9, 0.98), eps=1e-8)
-    optim_mi = optim.Adam(mine_net.parameters(), lr=0.001)
+    transeiver_optim = optim.Adam(transeiver.parameters(), lr=5e-4, betas=(0.9, 0.98), eps=1e-8)
+    mine_optim = optim.Adam(mine.parameters(), lr=0.001)
 
     
     # Training the model
@@ -92,7 +92,7 @@ if __name__ == '__main__':
         train_loss_record, test_loss_record = 0, 0
         for (batch, (inp, tar)) in enumerate(train_loader):
 
-            train_loss, train_loss_mine, _ = train_step(inp, tar, transeiver, mine_net, optim_net, optim_mi, args.channel, n_std,
+            train_loss, train_loss_mine, _ = train_step(inp, tar, transeiver, mine, transeiver_optim, mine_optim, args.channel, n_std,
                                             train_with_mine=args.train_with_mine)
             train_loss_record += train_loss
         train_loss_record = train_loss_record/batch
