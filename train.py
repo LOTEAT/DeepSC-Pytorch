@@ -4,7 +4,7 @@ Date: 2023-06-17 22:10:24
 '''
 from utils import create_masks, sample_batch, mutual_information
 
-def train(data, target, transceiver, mine_net, optim_net, optim_mi, channel='AWGN', n_std=0.1, train_with_mine=False):
+def train(data, target, transceiver, mine_net, optim_net, optim_mi, channel='AWGN', n_std=0.1, use_mine=False):
     tar_inp = target[:, :-1]  # exclude the last one
     tar_real = target[:, 1:]  # exclude the first one
 
@@ -23,7 +23,7 @@ def train(data, target, transceiver, mine_net, optim_net, optim_mi, channel='AWG
     loss_error = criterion(tar_real, predictions)
     loss = loss_error
     
-    if train_with_mine:
+    if use_mine:
         joint, marginal = sample_batch(channel_enc_output, received_channel_enc_output)
         mi_lb, _, _ = mutual_information(joint, marginal, mine_net)
         loss_mine = -mi_lb
