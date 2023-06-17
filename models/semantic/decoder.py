@@ -39,10 +39,8 @@ class DecoderLayer(nn.Module):
         )
         
         output2 = self.sublayer2(output1, attn2)
-        
         ffn_output = self.ffn(output2)
         output3 = self.sublayer3(output2, ffn_output)
-
         return output3, attn_weights1, attn_weights2
 
 
@@ -71,15 +69,16 @@ class SemanticDecoder(nn.Module):
         self.embedding = nn.Embedding(target_vocab_size, d_model)
         self.pos_encoding = position_encoding(maximum_position_encoding, d_model)
 
-        self.dec_layers = [
+        self.dec_layers = nn.ModuleList([
             DecoderLayer(d_model, d_model, num_heads, dff, dropout_pro)
             for _ in range(num_layers)
-        ]
+        ])
         self.dropout = nn.Dropout(dropout_pro)
         # prediction layer
         self.final_layer = nn.Linear(128, target_vocab_size)
 
     def forward(self, x, enc_output, training, look_ahead_mask, padding_mask):
+        self.pos_encoding = self.pos_encoding.to(x.device)
         seq_len = x.shape[1]
         attention_weights = {}
         x = self.embedding(x)  # (batch_size, target_seq_len, d_model)

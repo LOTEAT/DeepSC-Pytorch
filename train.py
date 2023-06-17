@@ -19,7 +19,6 @@ import torch.nn.functional as F
 criterion = SparseCategoricalCrossentropyLoss()
 
 def train_step(data, target, transceiver, mine_net, optim_net, optim_mi, channel='AWGN', n_std=0.1, train_with_mine=False):
-    
     tar_inp = target[:, :-1]  # exclude the last one
     tar_real = target[:, 1:]  # exclude the first one
 
@@ -46,7 +45,6 @@ def train_step(data, target, transceiver, mine_net, optim_net, optim_mi, channel
 
     # Compute gradients and update network parameters
     loss.backward()
-    print(loss.item())
     optim_net.step()
 
     if train_with_mine:
@@ -82,8 +80,10 @@ if __name__ == '__main__':
     train_loader = DataLoader(train_dataset, batch_size=args.bs, shuffle=True)
     test_loader = DataLoader(test_dataset, batch_size=args.bs, shuffle=True)
     
-    transeiver = Transceiver(args)
-    mine = Mine()     
+    
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    transeiver = Transceiver(args).to(device)
+    mine = Mine().to(device)     
 
     # Define the optimizer
     transeiver_optim = optim.Adam(transeiver.parameters(), lr=args.trans_lr)
@@ -94,9 +94,9 @@ if __name__ == '__main__':
     for epoch in range(args.epochs):
         n_std = snr2noise(args.train_snr)
         train_loss_record, test_loss_record = 0, 0
-        for (batch, (data, label)) in enumerate(train_loader):
-
-            train_loss, train_loss_mine, _ = train_step(data, label, transeiver, mine, transeiver_optim, mine_optim, args.channel, n_std,
+        for (batch, (data, target)) in enumerate(train_loader):
+            data, target = data.to(device), target.to(device)
+            train_loss, train_loss_mine, _ = train_step(data, target, transeiver, mine, transeiver_optim, mine_optim, args.channel, n_std,
                                             train_with_mine=args.train_with_mine)
             train_loss_record += train_loss
         train_loss_record = train_loss_record/batch

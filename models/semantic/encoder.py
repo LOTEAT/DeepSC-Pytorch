@@ -46,12 +46,13 @@ class SemanticEncoder(nn.Module):
         self.embedding = Embeddings(d_model, input_vocab_size)
         self.pos_encoding = position_encoding(maximum_position_encoding, self.d_model)
         self.dropout = nn.Dropout(dropout_pro)
-        self.encoder = [
+        self.encoder = nn.ModuleList([
             EncoderLayer(d_model, d_model, num_heads, dff, dropout_pro)
             for _ in range(num_layers)
-        ]
+        ])
 
     def forward(self, x, mask):
+        self.pos_encoding = self.pos_encoding.to(x.device)
         seq_len = x.shape[1]
         # Embedding
         x = self.embedding(x)
@@ -60,6 +61,7 @@ class SemanticEncoder(nn.Module):
         # Dropout
         x = self.dropout(x)
         # Encoder
+        
         for i in range(self.num_layers):
             x = self.encoder[i](x, mask)
         return x

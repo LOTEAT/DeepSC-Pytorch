@@ -7,19 +7,16 @@ from .powernorm import PowerNorm
 
 
 class ChannelEncoder(nn.Module):
-    def __init__(self, size1=256, size2=16):
+    def __init__(self, d_model=128):
         super(ChannelEncoder, self).__init__()
-        self.dense0 = nn.Linear(128, 256)
+        self.dense0 = nn.Linear(d_model, 256)
         self.ac_fun1 = nn.ReLU()
-        self.dense1 = nn.Linear(size1, size2)
+        self.dense1 = nn.Linear(256, 16)
         self.powernorm = PowerNorm()
 
-    def forward(self, inputs):
-
-        outputs1 = self.dense0(inputs)
-        outputs1 = self.ac_fun1(outputs1)
-        outputs2 = self.dense1(outputs1)
-        # POWER = tf.sqrt(tf.reduce_mean(tf.square(outputs2)))
-        power_norm_outputs = self.powernorm(outputs2)
-
-        return power_norm_outputs
+    def forward(self, data):
+        out = self.dense0(data)
+        out = self.ac_fun1(out)
+        out = self.dense1(out)
+        out = self.powernorm(out)
+        return out

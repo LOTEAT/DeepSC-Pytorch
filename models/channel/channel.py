@@ -14,8 +14,8 @@ class Channel(nn.Module):
         y = data + torch.randn_like(data) * n_std
         return y
 
-    def fading(self, inputs, K=1, n_std=0.1, detector='MMSE'):
-        x = inputs
+    def fading(self, data, K=1, n_std=0.1, detector='MMSE'):
+        x = data
         bs, sent_len, d_model = x.shape
         mean = math.sqrt(K / (2 * (K + 1)))
         std = math.sqrt(1 / (2 * (K + 1)))

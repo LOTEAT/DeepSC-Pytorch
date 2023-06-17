@@ -12,31 +12,30 @@ def snr2noise(snr):
     noise_std = 1 / np.sqrt(2 * snr)
     return noise_std
 
-
 def create_padding_mask(seq):
     seq = torch.eq(seq, 0).float()
-    return seq.unsqueeze(1).unsqueeze(2)  # (batch_size, 1, 1, seq_len)
+    return seq.unsqueeze(1).unsqueeze(2) 
 
 def create_look_ahead_mask(size):
     mask = 1 - torch.tril(torch.ones(size, size))
-    return mask  # (seq_len, seq_len)
+    return mask 
 
-def create_masks(inp, tar):
-    enc_padding_mask = create_padding_mask(inp)
-    dec_padding_mask = create_padding_mask(inp)
-    look_ahead_mask = create_look_ahead_mask(tar.size(1))
-    dec_target_padding_mask = create_padding_mask(tar)
+def create_masks(data, target):
+    enc_padding_mask = create_padding_mask(data)
+    dec_padding_mask = create_padding_mask(data)
+    look_ahead_mask = create_look_ahead_mask(target.size(1))
+    dec_target_padding_mask = create_padding_mask(target)
     combined_mask = torch.max(dec_target_padding_mask, look_ahead_mask)
     return enc_padding_mask, combined_mask, dec_padding_mask
 
-def sample_batch(rec, noise):
-    rec = rec.view(-1, 1)
+def sample_batch(data, noise):
+    data = data.view(-1, 1)
     noise = noise.view(-1, 1)
-    rec_sample1, rec_sample2 = torch.split(rec, rec.size(0) // 2, dim=0)
-    noise_sample1, noise_sample2 = torch.split(noise, noise.size(0) // 2, dim=0)
-    joint = torch.cat([rec_sample1, noise_sample1], dim=1)
-    marg = torch.cat([rec_sample1, noise_sample2], dim=1)
-    return joint, marg
+    batch_data1, batch_data2 = torch.split(data, data.size(0) // 2, dim=0)
+    batch_noise1, batch_noise2 = torch.split(noise, noise.size(0) // 2, dim=0)
+    joint = torch.cat([batch_data1, batch_noise1], dim=1)
+    marginal = torch.cat([batch_data1, batch_noise2], dim=1)
+    return joint, marginal
 
 def mutual_information(joint, marginal, mine_net):
     t = mine_net(joint)
