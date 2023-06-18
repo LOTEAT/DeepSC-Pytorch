@@ -23,7 +23,7 @@ def create_look_ahead_mask(size):
 def create_masks(data, target):
     enc_padding_mask = create_padding_mask(data)
     dec_padding_mask = create_padding_mask(data)
-    look_ahead_mask = create_look_ahead_mask(target.size(1))
+    look_ahead_mask = create_look_ahead_mask(target.size(1)).to(enc_padding_mask.device)
     dec_target_padding_mask = create_padding_mask(target)
     combined_mask = torch.max(dec_target_padding_mask, look_ahead_mask)
     return enc_padding_mask, combined_mask, dec_padding_mask

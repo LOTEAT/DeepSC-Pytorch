@@ -94,7 +94,6 @@ class SemanticDecoder(nn.Module):
 
         attention_weights["decoder_layer{}_block1".format(i + 1)] = block1
         attention_weights["decoder_layer{}_block2".format(i + 1)] = block2
-        print(x.shape)
         x = self.final_layer(x)
 
         # x.shape == (batch_size, target_seq_len, d_model)

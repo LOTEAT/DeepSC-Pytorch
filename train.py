@@ -3,6 +3,9 @@ Author: LOTEAT
 Date: 2023-06-17 22:10:24
 '''
 from utils import create_masks, sample_batch, mutual_information
+from loss import SparseCategoricalCrossentropyLoss
+
+criterion = SparseCategoricalCrossentropyLoss()
 
 def train(data, target, transceiver, mine_net, optim_net, optim_mi, channel='AWGN', n_std=0.1, use_mine=False):
     tar_inp = target[:, :-1]  # exclude the last one
@@ -33,7 +36,7 @@ def train(data, target, transceiver, mine_net, optim_net, optim_mi, channel='AWG
     loss.backward()
     optim_net.step()
 
-    if train_with_mine:
+    if use_mine:
         # Compute gradients and update MI estimator parameters
         optim_mi.zero_grad()
         loss_mine.backward()

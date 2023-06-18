@@ -11,10 +11,10 @@ from torch.utils.data import DataLoader
 from models.transceiver import Transceiver
 from models.mine import Mine
 import torch.optim as optim
-from loss import SparseCategoricalCrossentropyLoss
 import torch
 from train import train
 from tqdm import tqdm
+import os
 
 def load_vocab(args):
     vocab = json.load(open(args.vocab_path, 'rb'))
@@ -31,6 +31,7 @@ if __name__ == '__main__':
     torch.manual_seed(5)
     args = helper()
     torch.set_num_threads(args.nthreads)
+    os.makedirs(args.save_path, exist_ok=True)
     
     # Load the vocab
     args = load_vocab(args)
@@ -40,7 +41,6 @@ if __name__ == '__main__':
     train_loader = DataLoader(train_dataset, batch_size=args.bs, shuffle=True)
     test_loader = DataLoader(test_dataset, batch_size=args.bs, shuffle=True)
     
-    criterion = SparseCategoricalCrossentropyLoss()
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     transeiver = Transceiver(args).to(device)
     mine = Mine().to(device)     
@@ -55,13 +55,15 @@ if __name__ == '__main__':
         n_std = snr2noise(args.train_snr)
         train_loss_record, test_loss_record = 0, 0
         for (batch, (data, target)) in enumerate(train_loader):
+            
             data, target = data.to(device), target.to(device)
             train_loss, train_loss_mine, _ = train(data, target, transeiver, mine, transeiver_optim, mine_optim, args.channel, n_std,
-                                            train_with_mine=args.use_mine)
+                                            use_mine=args.use_mine)
             train_loss_record += train_loss
+        torch.save(transeiver, "%s/epoch_%d.pth" % (args.save_path, batch))
         train_loss_record = train_loss_record/batch
+        
 
-        # # Valid
         # for (batch, (inp, tar)) in enumerate(test_dataset):
         #     test_loss = eval_step(inp, tar, net, args.channel, n_std)
         #     test_loss_record += test_loss

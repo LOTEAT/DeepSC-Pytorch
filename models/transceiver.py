@@ -12,16 +12,16 @@ from .channel.channel import Channel
 class Transceiver(nn.Module):
     def __init__(self, args):
         super(Transceiver, self).__init__()
-        self.semantic_encoder = SemanticEncoder(args.encoder_num_layer, args.encoder_num_heads,
-                                        args.encoder_d_model, args.encoder_d_ff,
-                                        args.vocab_size, dropout_pro = args.encoder_dropout)
+        self.semantic_encoder = SemanticEncoder(args.enc_num_layer, args.enc_num_heads,
+                                        args.enc_d_model, args.enc_d_ff,
+                                        args.vocab_size, dropout_pro = args.enc_dropout)
 
-        self.semantic_decoder = SemanticDecoder(args.decoder_num_layer, args.decoder_num_heads,
-                                        args.decoder_d_model, args.decoder_d_ff,
-                                        args.vocab_size, dropout_pro = args.decoder_dropout)
+        self.semantic_decoder = SemanticDecoder(args.dec_num_layer, args.dec_num_heads,
+                                        args.dec_d_model, args.dec_d_ff,
+                                        args.vocab_size, dropout_pro = args.dec_dropout)
 
-        self.channel_encoder = ChannelEncoder(args.encoder_d_model)
-        self.channel_decoder = ChannelDecoder(args.decoder_d_model)
+        self.channel_encoder = ChannelEncoder(args.enc_d_model)
+        self.channel_decoder = ChannelDecoder(args.dec_d_model)
 
         self.channel = Channel()
 

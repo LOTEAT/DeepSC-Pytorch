@@ -8,8 +8,8 @@ import torch.nn as nn
 class Mine(nn.Module):
     def __init__(self, hidden_size=10):
         super(Mine, self).__init__()
-        normal_init = lambda x: torch.nn.init.normal(x, mean=0.0, std=0.02)
-        zero_init = lambda x: torch.nn.init.constant(x, 0)
+        normal_init = lambda x: torch.nn.init.normal_(x, mean=0.0, std=0.02)
+        zero_init = lambda x: torch.nn.init.constant_(x, 0)
 
         self.dense1 = nn.Linear(hidden_size, hidden_size)
         self.relu1 = nn.ReLU()
