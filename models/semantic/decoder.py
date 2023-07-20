@@ -75,9 +75,9 @@ class SemanticDecoder(nn.Module):
         ])
         self.dropout = nn.Dropout(dropout_pro)
         # prediction layer
-        self.final_layer = nn.Linear(128, target_vocab_size)
+        self.final_layer = nn.Linear(d_model, target_vocab_size)
 
-    def forward(self, x, enc_output, training, look_ahead_mask, padding_mask):
+    def forward(self, x, enc_output, look_ahead_mask, padding_mask):
         self.pos_encoding = self.pos_encoding.to(x.device)
         seq_len = x.shape[1]
         attention_weights = {}

@@ -39,7 +39,7 @@ class Transceiver(nn.Module):
 
         # semantic deocder
         pred, _ = self.semantic_decoder(target, self.channel_decoder(channel_out),
-                                                    training, combined_mask, dec_padding_mask)
+                                                     combined_mask, dec_padding_mask)
 
         return pred, channel_enc_out, channel_out
 

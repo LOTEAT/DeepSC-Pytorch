@@ -15,7 +15,7 @@ def train(data, target, transceiver, mine_net, optim_net, optim_mi, channel='AWG
 
     optim_net.zero_grad()
     optim_mi.zero_grad()
-
+    print(tar_inp.shape)
     # Forward pass
     predictions, channel_enc_output, received_channel_enc_output = transceiver(
         data, tar_inp, channel=channel, n_std=n_std,
@@ -23,6 +23,8 @@ def train(data, target, transceiver, mine_net, optim_net, optim_mi, channel='AWG
         combined_mask=combined_mask, dec_padding_mask=dec_padding_mask
     )
     # Compute loss
+    print(predictions.shape, tar_real.shape)
+    print(predictions[0])
     loss_error = criterion(tar_real, predictions)
     loss = loss_error
     

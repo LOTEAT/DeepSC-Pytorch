@@ -26,18 +26,18 @@ def greedy_decode(args, inp, net, channel='AWGN', n_std=0.1):
         received_channel_enc_output = net.channel.fading(channel_enc_output, 1, n_std)
     else:
         received_channel_enc_output = net.channel.fading(channel_enc_output, 0, n_std)
-
+    
+        # channel decoder
+    received_channel_dec_output = net.channel_decoder(received_channel_enc_output)
     for i in range(args.max_length):
         # create sequence padding
         look_ahead_mask = create_look_ahead_mask(outputs.size(1)).to('cuda')
         dec_target_padding_mask = create_padding_mask(outputs).to('cuda')
         combined_mask = torch.max(dec_target_padding_mask, look_ahead_mask)
 
-        # channel decoder
-        received_channel_dec_output = net.channel_decoder(received_channel_enc_output)
         # semantic deocder
         predictions, _ = net.semantic_decoder(outputs, received_channel_dec_output,
-                                                   False, combined_mask, enc_padding_mask)
+                                                    combined_mask, enc_padding_mask)
 
         # choose the word from axis = 1
         predictions = predictions[:, -1:, :]  # (batch_size, 1, vocab_size)
@@ -60,6 +60,7 @@ if __name__ == '__main__':
     SNR = [6]
     # Set Parameters
     args = helper()
+    torch.set_num_threads(args.nthreads)
     # Load the vocab
     vocab = json.load(open(args.vocab_path, 'r'))
     args.vocab_size = len(vocab['token_to_idx'])
@@ -76,7 +77,7 @@ if __name__ == '__main__':
     
 
     # Load the model from the checkpoint path
-    net = torch.load('/home/zhuzengle/multi_modal/DeepSC-Pytorch/checkpoint/epoch_0.pth')
+    net = torch.load('/home/zhuzengle/multi_modal/DeepSC-Pytorch/checkpoint/epoch_1.pth')
     
 
     if test_metrics:
@@ -106,6 +107,7 @@ if __name__ == '__main__':
             score1 = metrics.compute_score(word, target_word)
             score1 = np.array(score1)
             score1 = np.mean(score1)
+            print(score1)
             score += score1
             print(
                 'Run: {}; Type: VAL; BLEU Score: {:.5f}'.format(
